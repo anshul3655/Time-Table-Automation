@@ -5,7 +5,7 @@ from openpyxl.utils import get_column_letter
 
 # This Whole code help us to make our Timetable looking More Visually Good And separate time table for each Branch or division 
 
-def format_timetable(input_file="Timetable_Capacity.xlsx", output_file="Formatted_Timetable.xlsx"):
+def format_timetable(input_file="generated_timetable.xlsx", output_file="Formatted_Timetable.xlsx"):
     """
     Converts raw timetable data into a formatted timetable with:
     - Days as rows
