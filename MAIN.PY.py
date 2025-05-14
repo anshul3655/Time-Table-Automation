@@ -30,8 +30,8 @@ C_AI = {
     "EE207": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
     "CS503": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
     "MA302": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
-    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 190},
-    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 190}
+    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 200},
+    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 200}
 }
 
 C_CE = {
@@ -39,25 +39,25 @@ C_CE = {
     "CE302": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
     "CE303": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
     "MA202": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
-    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
-    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 60}
+    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 200},
+    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 200}
 }
 
 C_CH = {
     "CH203": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
     "CH204": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
     "CH231": {"hr_pw": 2, "dur_hr": 2, "stud": 60}, # Lab, 2 sessions/week, 2hrs each
-    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
+    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 200},
     "C230": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
-    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 60}
+    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 200}
 }
 
 C_CSE = {
     "CS202": {"hr_pw": 3, "dur_hr": 1, "stud": 90},
-    "CS204": {"hr_pw": 3, "dur_hr": 1, "stud": 80},
+    "CS204": {"hr_pw": 3, "dur_hr": 1, "stud": 90},
     "MA202": {"hr_pw": 3, "dur_hr": 1, "stud": 120},
-    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 60},
-    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 60}
+    "BM101": {"hr_pw": 3, "dur_hr": 1, "stud": 200},
+    "GE108": {"hr_pw": 3, "dur_hr": 1, "stud": 200}
 }
 
 # Modified: common courses with  time of  2-hour duration( lIke in our case Nso is common Course and no need of clasrrom for it )
@@ -596,6 +596,61 @@ def generate_timetable():
         # Check if room is overbooked
         status = "OK" if stud <= room_cap else f"OVERBOOKED ({stud}/{room_cap})"
         
-        # Check for conflicts with NS courses
-        ns_conflict
+        data.append([div, course, teacher, day, time, room, stud, room_cap, status])
+    
+    df = pd.DataFrame(data, columns=["Division", "Course", "Teacher", "Day", "Time", "Room", 
+                                      "Students", "Room Cap", "Status"])
+    
+    # Process multi-hour courses
+    for _, row in df.iterrows():
+        course = row["Course"]
+        dur_hr = get_course_dur(course)
         
+        if dur_hr > 1:
+            # Find all slots for this course on this day
+            same_course_day = df[(df["Course"] == course) & 
+                               (df["Day"] == row["Day"]) & 
+                               (df["Division"] == row["Division"])]
+            
+            if len(same_course_day) == dur_hr:
+                # Sort by time
+                sorted_times = sorted(same_course_day["Time"].tolist(), 
+                                     key=lambda x: TIMES.index(x) if x in TIMES else -1)
+                
+                # Mark first slot
+                df.loc[(df["Course"] == course) & 
+                     (df["Day"] == row["Day"]) & 
+                     (df["Division"] == row["Division"]) & 
+                     (df["Time"] == sorted_times[0]), "Course"] = f"{course} ({dur_hr}hr start)"
+                
+                
+                for i in range(1, len(sorted_times) - 1):
+                    df.loc[(df["Course"] == course) & 
+                         (df["Day"] == row["Day"]) & 
+                         (df["Division"] == row["Division"]) & 
+                         (df["Time"] == sorted_times[i]), "Course"] = f"{course} (cont)"
+                
+                # Mark last slot
+                df.loc[(df["Course"] == course) & 
+                     (df["Day"] == row["Day"]) & 
+                     (df["Division"] == row["Division"]) & 
+                     (df["Time"] == sorted_times[-1]), "Course"] = f"{course} (end)"
+    
+    
+    df.to_excel("Timetable_Capacity.xlsx", index=False)
+    print("Timetable saved as 'Timetable_Capacity.xlsx'")
+    
+    
+    cap_issues = df[df["Status"].str.contains("OVERBOOKED")]
+    if not cap_issues.empty:
+        print(f"\nFound {len(cap_issues)} capacity issues:")
+        for _, row in cap_issues.iterrows():
+            print(f"{row['Division']} - {row['Course']} in {row['Room']} on {row['Day']} at {row['Time']}: {row['Students']} students, capacity {row['Room Cap']}")
+    else:
+        print("\nNo  issues found!")
+    
+    return df
+
+
+if __name__ == "__main__":
+    generate_timetable()
