@@ -637,8 +637,8 @@ def generate_timetable():
                      (df["Time"] == sorted_times[-1]), "Course"] = f"{course} (end)"
     
     
-    df.to_excel("Timetable_Capacity.xlsx", index=False)
-    print("Timetable saved as 'Timetable_Capacity.xlsx'")
+    df.to_excel("generated_timetable.xlsx", index=False)
+    print("Timetable saved as 'generated_timetable.xlsx'")
     
     
     cap_issues = df[df["Status"].str.contains("OVERBOOKED")]
